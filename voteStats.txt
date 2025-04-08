@@ -1,0 +1,45 @@
+Connected to the database successfully.
+Votes found: 4
+
+Vote details:
+
+Vote #1:
+ID: dd08321c-4111-476b-a051-c42d9cc3702c
+Voter: jk (jk@gmail.com)
+Encrypted Vote: U2FsdGVkX1/GJLYNofF0IfHzN1Sa3+t4nSgHCSNcehw=
+Election ID: 1
+Timestamp: Tue Apr 08 2025 14:37:59 GMT+0530 (India Standard Time)
+Decrypted Vote: 1
+
+Vote #2:
+ID: 83abdd28-4694-4d01-822a-3614a929c1cb
+Voter: smaran (smaran@gmail.com)
+Encrypted Vote: U2FsdGVkX1+Gpk6za26KyOU7qEgP0JX9ogCRLia0EvY=
+Election ID: 1
+Timestamp: Tue Apr 08 2025 14:39:53 GMT+0530 (India Standard Time)
+Decrypted Vote: 2
+
+Vote #3:
+ID: 00137a84-a8f4-40c1-a375-801637677d73
+Voter: nayana (nayana@gmail.com)
+Encrypted Vote: U2FsdGVkX1/4kuDJ7f75djwkm/+gHfeFOB1KHyOrAU8=
+Election ID: 1
+Timestamp: Tue Apr 08 2025 15:08:02 GMT+0530 (India Standard Time)
+Decrypted Vote: 3
+
+Vote #4:
+ID: b9b95271-d5f6-4922-ab40-d7b7a5dfc266
+Voter: mads (mads@gmail.com)
+Encrypted Vote: U2FsdGVkX19QWB0JEpUCnzdjWGpVxjHQ6WskHux8nBA=
+Election ID: 1
+Timestamp: Tue Apr 08 2025 15:15:05 GMT+0530 (India Standard Time)
+Decrypted Vote: 2
+
+Candidate Statistics:
+---------------------
+Candidate 1: 1 votes (25.0%)
+Candidate 2: 2 votes (50.0%)
+Candidate 3: 1 votes (25.0%)
+Total votes: 4
+
+Database connection closed.
