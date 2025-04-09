@@ -1,6 +1,7 @@
 const Vote = require('../models/Vote');
 const User = require('../models/User');
 const { decryptVote } = require('../utils/encryption');
+const { broadcast } = require('../server');
 
 // @desc    Submit a vote
 // @route   POST /api/votes
@@ -27,6 +28,30 @@ const submitVote = async (req, res) => {
     user.hasVoted = true;
     await user.save();
 
+    // Broadcast new vote to all connected clients
+    const votes = await Vote.findAll({
+      include: [{
+        model: User,
+        attributes: ['username', 'email', 'publicKey']
+      }]
+    });
+
+    const decryptedVotes = votes.map(vote => {
+      let decryptedVote;
+      try {
+        decryptedVote = decryptVote(vote.encryptedVote, vote.User.publicKey);
+      } catch (error) {
+        console.error('Error decrypting vote:', error);
+        decryptedVote = 'unknown';
+      }
+      return {
+        ...vote.toJSON(),
+        decryptedVote
+      };
+    });
+
+    broadcast(decryptedVotes);
+
     res.status(201).json(vote);
   } catch (error) {
     console.error('Vote submission error:', error);
@@ -42,10 +67,26 @@ const getVotes = async (req, res) => {
     const votes = await Vote.findAll({
       include: [{
         model: User,
-        attributes: ['username', 'email']
+        attributes: ['username', 'email', 'publicKey']
       }]
     });
-    res.json(votes);
+
+    // Decrypt votes
+    const decryptedVotes = votes.map(vote => {
+      let decryptedVote;
+      try {
+        decryptedVote = decryptVote(vote.encryptedVote, vote.User.publicKey);
+      } catch (error) {
+        console.error('Error decrypting vote:', error);
+        decryptedVote = 'unknown';
+      }
+      return {
+        ...vote.toJSON(),
+        decryptedVote
+      };
+    });
+
+    res.json(decryptedVotes);
   } catch (error) {
     console.error('Get votes error:', error);
     res.status(500).json({ message: error.message });

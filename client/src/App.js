@@ -39,7 +39,14 @@ function App() {
               </AdminRoute>
             }
           />
-          <Route path="/admin-dashboard" element={<AdminDashboard />} />
+          <Route
+            path="/admin-dashboard"
+            element={
+              <AdminRoute>
+                <AdminDashboard />
+              </AdminRoute>
+            }
+          />
           <Route path="/" element={<Login />} />
         </Routes>
       </div>
