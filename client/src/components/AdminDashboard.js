@@ -3,7 +3,9 @@ import { useNavigate } from 'react-router-dom';
 import { decryptVote } from '../utils/encryption';
 
 const AdminDashboard = () => {
+  const [activeTab, setActiveTab] = useState('stats');
   const [votes, setVotes] = useState([]);
+  const [users, setUsers] = useState([]);
   const [candidateStats, setCandidateStats] = useState({
     '1': 0,
     '2': 0,
@@ -11,9 +13,8 @@ const AdminDashboard = () => {
   });
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
-  const [activeTab, setActiveTab] = useState('overview');
-  const [searchTerm, setSearchTerm] = useState('');
-  const [filteredVotes, setFilteredVotes] = useState([]);
+  const [selectedVote, setSelectedVote] = useState(null);
+  const [decryptedVote, setDecryptedVote] = useState('');
   const navigate = useNavigate();
 
   useEffect(() => {
@@ -23,6 +24,7 @@ const AdminDashboard = () => {
       return;
     }
     fetchVotes();
+    fetchUsers();
 
     // Set up WebSocket connection
     const ws = new WebSocket('ws://localhost:5000');
@@ -46,14 +48,6 @@ const AdminDashboard = () => {
     };
   }, [navigate]);
 
-  useEffect(() => {
-    const filtered = votes.filter(vote => 
-      vote.User.username.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      vote.User.email.toLowerCase().includes(searchTerm.toLowerCase())
-    );
-    setFilteredVotes(filtered);
-  }, [searchTerm, votes]);
-
   const fetchVotes = async () => {
     try {
       setLoading(true);
@@ -67,7 +61,6 @@ const AdminDashboard = () => {
       if (response.ok) {
         const data = await response.json();
         setVotes(data);
-        setFilteredVotes(data);
         updateCandidateStats(data);
       } else {
         setError('Failed to fetch votes');
@@ -76,6 +69,26 @@ const AdminDashboard = () => {
       setError('An error occurred while fetching votes');
     } finally {
       setLoading(false);
+    }
+  };
+
+  const fetchUsers = async () => {
+    try {
+      const user = JSON.parse(localStorage.getItem('user'));
+      const response = await fetch('http://localhost:5000/api/users', {
+        headers: {
+          'Authorization': `Bearer ${user.token}`
+        }
+      });
+
+      if (response.ok) {
+        const data = await response.json();
+        setUsers(data);
+      } else {
+        setError('Failed to fetch users');
+      }
+    } catch (error) {
+      setError('An error occurred while fetching users');
     }
   };
 
@@ -113,7 +126,8 @@ const AdminDashboard = () => {
 
       if (response.ok) {
         const data = await response.json();
-        alert(`Vote verified: ${data.decryptedVote}`);
+        setSelectedVote(vote);
+        setDecryptedVote(data.decryptedVote);
       } else {
         setError('Failed to verify vote');
       }
@@ -131,49 +145,26 @@ const AdminDashboard = () => {
     return (
       <div className="min-h-screen bg-gray-50 flex items-center justify-center">
         <div className="text-center">
-          <h2 className="text-xl font-semibold text-gray-700">Loading vote data...</h2>
+          <h2 className="text-xl font-semibold text-gray-700">Loading dashboard data...</h2>
         </div>
       </div>
     );
   }
 
   return (
-    <div className="min-h-screen bg-gray-50">
-      {/* Navigation Bar */}
-      <nav className="bg-white shadow">
+    <div className="min-h-screen bg-gray-100">
+      <nav className="bg-white shadow-sm">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="flex justify-between h-16">
             <div className="flex">
               <div className="flex-shrink-0 flex items-center">
                 <h1 className="text-xl font-bold text-indigo-600">Admin Dashboard</h1>
               </div>
-              <div className="hidden sm:ml-6 sm:flex sm:space-x-8">
-                <button
-                  onClick={() => setActiveTab('overview')}
-                  className={`${
-                    activeTab === 'overview'
-                      ? 'border-indigo-500 text-gray-900'
-                      : 'border-transparent text-gray-500 hover:border-gray-300 hover:text-gray-700'
-                  } inline-flex items-center px-1 pt-1 border-b-2 text-sm font-medium`}
-                >
-                  Overview
-                </button>
-                <button
-                  onClick={() => setActiveTab('votes')}
-                  className={`${
-                    activeTab === 'votes'
-                      ? 'border-indigo-500 text-gray-900'
-                      : 'border-transparent text-gray-500 hover:border-gray-300 hover:text-gray-700'
-                  } inline-flex items-center px-1 pt-1 border-b-2 text-sm font-medium`}
-                >
-                  Votes
-                </button>
-              </div>
             </div>
             <div className="flex items-center">
               <button
                 onClick={handleLogout}
-                className="ml-4 px-4 py-2 border border-transparent text-sm font-medium rounded-md text-white bg-indigo-600 hover:bg-indigo-700"
+                className="ml-4 px-4 py-2 border border-transparent text-sm font-medium rounded-md text-white bg-indigo-600 hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500"
               >
                 Logout
               </button>
@@ -189,38 +180,84 @@ const AdminDashboard = () => {
           </div>
         )}
 
-        {activeTab === 'overview' && (
+        <div className="mb-6">
+          <div className="sm:hidden">
+            <label htmlFor="tabs" className="sr-only">Select a tab</label>
+            <select
+              id="tabs"
+              name="tabs"
+              className="block w-full focus:ring-indigo-500 focus:border-indigo-500 border-gray-300 rounded-md"
+              value={activeTab}
+              onChange={(e) => setActiveTab(e.target.value)}
+            >
+              <option value="stats">Statistics</option>
+              <option value="voters">Voters</option>
+              <option value="votes">Votes</option>
+            </select>
+          </div>
+          <div className="hidden sm:block">
+            <div className="border-b border-gray-200">
+              <nav className="-mb-px flex space-x-8" aria-label="Tabs">
+                <button
+                  onClick={() => setActiveTab('stats')}
+                  className={`${
+                    activeTab === 'stats'
+                      ? 'border-indigo-500 text-indigo-600'
+                      : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
+                  } whitespace-nowrap py-4 px-1 border-b-2 font-medium text-sm`}
+                >
+                  Statistics
+                </button>
+                <button
+                  onClick={() => setActiveTab('voters')}
+                  className={`${
+                    activeTab === 'voters'
+                      ? 'border-indigo-500 text-indigo-600'
+                      : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
+                  } whitespace-nowrap py-4 px-1 border-b-2 font-medium text-sm`}
+                >
+                  Voters
+                </button>
+                <button
+                  onClick={() => setActiveTab('votes')}
+                  className={`${
+                    activeTab === 'votes'
+                      ? 'border-indigo-500 text-indigo-600'
+                      : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
+                  } whitespace-nowrap py-4 px-1 border-b-2 font-medium text-sm`}
+                >
+                  Votes
+                </button>
+              </nav>
+            </div>
+          </div>
+        </div>
+
+        {/* Statistics Tab */}
+        {activeTab === 'stats' && (
           <div className="bg-white shadow overflow-hidden sm:rounded-lg">
             <div className="px-4 py-5 sm:px-6">
-              <h3 className="text-lg leading-6 font-medium text-gray-900">
-                Election Overview
-              </h3>
-              <p className="mt-1 max-w-2xl text-sm text-gray-500">
-                Current vote distribution and statistics
-              </p>
+              <h3 className="text-lg leading-6 font-medium text-gray-900">Vote Statistics</h3>
+              <p className="mt-1 max-w-2xl text-sm text-gray-500">Current vote distribution across candidates.</p>
             </div>
             <div className="border-t border-gray-200">
               <dl>
                 <div className="bg-gray-50 px-4 py-5 sm:grid sm:grid-cols-3 sm:gap-4 sm:px-6">
-                  <dt className="text-sm font-medium text-gray-500">Total Votes Cast</dt>
-                  <dd className="mt-1 text-sm text-gray-900 sm:mt-0 sm:col-span-2">{votes.length}</dd>
+                  <dt className="text-sm font-medium text-gray-500">Candidate 1</dt>
+                  <dd className="mt-1 text-sm text-gray-900 sm:mt-0 sm:col-span-2">{candidateStats['1']} votes</dd>
                 </div>
                 <div className="bg-white px-4 py-5 sm:grid sm:grid-cols-3 sm:gap-4 sm:px-6">
-                  <dt className="text-sm font-medium text-gray-500">Candidate 1</dt>
-                  <dd className="mt-1 text-sm text-gray-900 sm:mt-0 sm:col-span-2">
-                    {candidateStats['1']} votes ({((candidateStats['1'] / votes.length) * 100).toFixed(1)}%)
-                  </dd>
+                  <dt className="text-sm font-medium text-gray-500">Candidate 2</dt>
+                  <dd className="mt-1 text-sm text-gray-900 sm:mt-0 sm:col-span-2">{candidateStats['2']} votes</dd>
                 </div>
                 <div className="bg-gray-50 px-4 py-5 sm:grid sm:grid-cols-3 sm:gap-4 sm:px-6">
-                  <dt className="text-sm font-medium text-gray-500">Candidate 2</dt>
-                  <dd className="mt-1 text-sm text-gray-900 sm:mt-0 sm:col-span-2">
-                    {candidateStats['2']} votes ({((candidateStats['2'] / votes.length) * 100).toFixed(1)}%)
-                  </dd>
+                  <dt className="text-sm font-medium text-gray-500">Candidate 3</dt>
+                  <dd className="mt-1 text-sm text-gray-900 sm:mt-0 sm:col-span-2">{candidateStats['3']} votes</dd>
                 </div>
                 <div className="bg-white px-4 py-5 sm:grid sm:grid-cols-3 sm:gap-4 sm:px-6">
-                  <dt className="text-sm font-medium text-gray-500">Candidate 3</dt>
+                  <dt className="text-sm font-medium text-gray-500">Total Votes</dt>
                   <dd className="mt-1 text-sm text-gray-900 sm:mt-0 sm:col-span-2">
-                    {candidateStats['3']} votes ({((candidateStats['3'] / votes.length) * 100).toFixed(1)}%)
+                    {Object.values(candidateStats).reduce((a, b) => a + b, 0)} votes
                   </dd>
                 </div>
               </dl>
@@ -228,64 +265,141 @@ const AdminDashboard = () => {
           </div>
         )}
 
-        {activeTab === 'votes' && (
-          <div>
-            <div className="mb-4">
-              <input
-                type="text"
-                placeholder="Search by username or email..."
-                value={searchTerm}
-                onChange={(e) => setSearchTerm(e.target.value)}
-                className="shadow-sm focus:ring-indigo-500 focus:border-indigo-500 block w-full sm:text-sm border-gray-300 rounded-md"
-              />
+        {/* Voters Tab */}
+        {activeTab === 'voters' && (
+          <div className="bg-white shadow overflow-hidden sm:rounded-lg">
+            <div className="px-4 py-5 sm:px-6">
+              <h3 className="text-lg leading-6 font-medium text-gray-900">Registered Voters</h3>
+              <p className="mt-1 max-w-2xl text-sm text-gray-500">List of all registered users in the system.</p>
             </div>
-            <div className="bg-white shadow overflow-hidden sm:rounded-lg">
-              <table className="min-w-full divide-y divide-gray-200">
-                <thead className="bg-gray-50">
-                  <tr>
-                    <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                      Voter
-                    </th>
-                    <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                      Timestamp
-                    </th>
-                    <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                      Status
-                    </th>
-                    <th scope="col" className="relative px-6 py-3">
-                      <span className="sr-only">Actions</span>
-                    </th>
-                  </tr>
-                </thead>
-                <tbody className="bg-white divide-y divide-gray-200">
-                  {filteredVotes.map((vote) => (
-                    <tr key={vote.id}>
-                      <td className="px-6 py-4 whitespace-nowrap">
-                        <div className="text-sm font-medium text-gray-900">{vote.User.username}</div>
-                        <div className="text-sm text-gray-500">{vote.User.email}</div>
-                      </td>
-                      <td className="px-6 py-4 whitespace-nowrap">
-                        <div className="text-sm text-gray-900">
-                          {new Date(vote.createdAt).toLocaleString()}
-                        </div>
-                      </td>
-                      <td className="px-6 py-4 whitespace-nowrap">
-                        <span className="px-2 inline-flex text-xs leading-5 font-semibold rounded-full bg-green-100 text-green-800">
-                          Verified
-                        </span>
-                      </td>
-                      <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
-                        <button
-                          onClick={() => handleVerifyVote(vote)}
-                          className="text-indigo-600 hover:text-indigo-900"
-                        >
-                          Verify Vote
-                        </button>
-                      </td>
+            <div className="border-t border-gray-200">
+              <div className="overflow-x-auto">
+                <table className="min-w-full divide-y divide-gray-200">
+                  <thead className="bg-gray-50">
+                    <tr>
+                      <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                        Username
+                      </th>
+                      <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                        Email
+                      </th>
+                      <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                        Role
+                      </th>
+                      <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                        Has Voted
+                      </th>
+                      <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                        Registered On
+                      </th>
                     </tr>
-                  ))}
-                </tbody>
-              </table>
+                  </thead>
+                  <tbody className="bg-white divide-y divide-gray-200">
+                    {users.map((user) => (
+                      <tr key={user.id}>
+                        <td className="px-6 py-4 whitespace-nowrap">
+                          <div className="text-sm font-medium text-gray-900">{user.username}</div>
+                        </td>
+                        <td className="px-6 py-4 whitespace-nowrap">
+                          <div className="text-sm text-gray-500">{user.email}</div>
+                        </td>
+                        <td className="px-6 py-4 whitespace-nowrap">
+                          <span className={`px-2 inline-flex text-xs leading-5 font-semibold rounded-full ${
+                            user.role === 'admin' ? 'bg-purple-100 text-purple-800' : 'bg-green-100 text-green-800'
+                          }`}>
+                            {user.role}
+                          </span>
+                        </td>
+                        <td className="px-6 py-4 whitespace-nowrap">
+                          <span className={`px-2 inline-flex text-xs leading-5 font-semibold rounded-full ${
+                            user.hasVoted ? 'bg-green-100 text-green-800' : 'bg-yellow-100 text-yellow-800'
+                          }`}>
+                            {user.hasVoted ? 'Yes' : 'No'}
+                          </span>
+                        </td>
+                        <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                          {new Date(user.createdAt).toLocaleString()}
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            </div>
+          </div>
+        )}
+
+        {/* Votes Tab */}
+        {activeTab === 'votes' && (
+          <div className="bg-white shadow overflow-hidden sm:rounded-lg">
+            <div className="px-4 py-5 sm:px-6">
+              <h3 className="text-lg leading-6 font-medium text-gray-900">Cast Votes</h3>
+              <p className="mt-1 max-w-2xl text-sm text-gray-500">List of all votes cast in the election.</p>
+            </div>
+            <div className="border-t border-gray-200">
+              <div className="overflow-x-auto">
+                <table className="min-w-full divide-y divide-gray-200">
+                  <thead className="bg-gray-50">
+                    <tr>
+                      <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                        Voter
+                      </th>
+                      <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                        Timestamp
+                      </th>
+                      <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                        Vote
+                      </th>
+                      <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                        Actions
+                      </th>
+                    </tr>
+                  </thead>
+                  <tbody className="bg-white divide-y divide-gray-200">
+                    {votes.map((vote) => (
+                      <tr key={vote.id}>
+                        <td className="px-6 py-4 whitespace-nowrap">
+                          <div className="text-sm text-gray-900">{vote.User.username}</div>
+                          <div className="text-sm text-gray-500">{vote.User.email}</div>
+                        </td>
+                        <td className="px-6 py-4 whitespace-nowrap">
+                          <div className="text-sm text-gray-900">
+                            {new Date(vote.createdAt).toLocaleString()}
+                          </div>
+                        </td>
+                        <td className="px-6 py-4 whitespace-nowrap">
+                          <div className="text-sm text-gray-900">
+                            {vote.decryptedVote ? `Candidate ${vote.decryptedVote}` : 'Encrypted'}
+                          </div>
+                        </td>
+                        <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
+                          <button
+                            onClick={() => handleVerifyVote(vote)}
+                            className="text-indigo-600 hover:text-indigo-900"
+                          >
+                            Verify Vote
+                          </button>
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            </div>
+          </div>
+        )}
+
+        {selectedVote && (
+          <div className="mt-8 bg-white shadow sm:rounded-lg">
+            <div className="px-4 py-5 sm:p-6">
+              <h3 className="text-lg leading-6 font-medium text-gray-900">
+                Verified Vote Details
+              </h3>
+              <div className="mt-2 max-w-xl text-sm text-gray-500">
+                <p>Voter: {selectedVote.User.username}</p>
+                <p>Decrypted Vote: Candidate {decryptedVote}</p>
+                <p>Timestamp: {new Date(selectedVote.createdAt).toLocaleString()}</p>
+              </div>
             </div>
           </div>
         )}

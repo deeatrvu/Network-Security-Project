@@ -2,7 +2,7 @@ import CryptoJS from 'crypto-js';
 
 export const generateKeyPair = () => {
   try {
-    const privateKey = CryptoJS.lib.WordArray.random(16).toString();
+    const privateKey = CryptoJS.lib.WordArray.random(32).toString();
     const publicKey = CryptoJS.SHA256(privateKey).toString();
     return { privateKey, publicKey };
   } catch (error) {
@@ -16,7 +16,8 @@ export const encryptVote = (vote, publicKey) => {
     if (!vote || !publicKey) {
       throw new Error('Vote and public key are required for encryption');
     }
-    return CryptoJS.AES.encrypt(vote, publicKey).toString();
+    const voteString = vote.toString();
+    return CryptoJS.AES.encrypt(voteString, publicKey).toString();
   } catch (error) {
     console.error('Error encrypting vote:', error);
     throw error;
@@ -29,7 +30,13 @@ export const decryptVote = (encryptedVote, privateKey) => {
       throw new Error('Encrypted vote and private key are required for decryption');
     }
     const bytes = CryptoJS.AES.decrypt(encryptedVote, privateKey);
-    return bytes.toString(CryptoJS.enc.Utf8);
+    const decryptedText = bytes.toString(CryptoJS.enc.Utf8);
+    
+    if (!decryptedText) {
+      throw new Error('Failed to decrypt vote');
+    }
+    
+    return decryptedText;
   } catch (error) {
     console.error('Error decrypting vote:', error);
     throw error;

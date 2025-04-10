@@ -7,6 +7,7 @@ const Login = () => {
     password: ''
   });
   const [error, setError] = useState('');
+  const [loading, setLoading] = useState(false);
   const navigate = useNavigate();
 
   const handleChange = (e) => {
@@ -14,10 +15,15 @@ const Login = () => {
       ...formData,
       [e.target.name]: e.target.value
     });
+    // Clear error when user starts typing
+    setError('');
   };
 
   const handleSubmit = async (e) => {
     e.preventDefault();
+    setLoading(true);
+    setError('');
+
     try {
       const response = await fetch('http://localhost:5000/api/auth/login', {
         method: 'POST',
@@ -32,28 +38,36 @@ const Login = () => {
       if (response.ok) {
         // Get the stored user data from registration
         const storedUser = JSON.parse(localStorage.getItem('user'));
-        if (storedUser && storedUser.publicKey) {
-          // Merge the login response with stored keys
-          localStorage.setItem('user', JSON.stringify({
-            ...data,
-            publicKey: storedUser.publicKey,
-            privateKey: storedUser.privateKey
-          }));
-        } else {
-          localStorage.setItem('user', JSON.stringify(data));
-        }
         
-        // Check if user is admin and show admin dashboard button
-        if (data.role === 'admin') {
-          navigate('/admin-dashboard');
+        // Validate stored keys
+        if (!storedUser || !storedUser.publicKey || !storedUser.privateKey) {
+          setError('Missing encryption keys. Please register again.');
+          setLoading(false);
+          return;
+        }
+
+        // Merge the login response with stored keys
+        const userData = {
+          ...data,
+          publicKey: storedUser.publicKey,
+          privateKey: storedUser.privateKey
+        };
+
+        localStorage.setItem('user', JSON.stringify(userData));
+
+        // Navigate based on user role
+        if (userData.role === 'admin') {
+          navigate('/admin');
         } else {
           navigate('/vote');
         }
       } else {
-        setError(data.message);
+        setError(data.message || 'Invalid email or password');
       }
     } catch (error) {
-      setError('An error occurred. Please try again.');
+      setError('Network error. Please check your connection and try again.');
+    } finally {
+      setLoading(false);
     }
   };
 
@@ -83,6 +97,7 @@ const Login = () => {
                 placeholder="Email address"
                 value={formData.email}
                 onChange={handleChange}
+                disabled={loading}
               />
             </div>
             <div>
@@ -96,6 +111,7 @@ const Login = () => {
                 placeholder="Password"
                 value={formData.password}
                 onChange={handleChange}
+                disabled={loading}
               />
             </div>
           </div>
@@ -103,18 +119,10 @@ const Login = () => {
           <div>
             <button
               type="submit"
-              className="group relative w-full flex justify-center py-2 px-4 border border-transparent text-sm font-medium rounded-md text-white bg-indigo-600 hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500"
+              className="group relative w-full flex justify-center py-2 px-4 border border-transparent text-sm font-medium rounded-md text-white bg-indigo-600 hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500 disabled:opacity-50"
+              disabled={loading}
             >
-              Sign in
-            </button>
-          </div>
-          <div className="mt-4">
-            <button
-              type="button"
-              onClick={() => navigate('/register')}
-              className="group relative w-full flex justify-center py-2 px-4 border border-transparent text-sm font-medium rounded-md text-indigo-600 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500 border-indigo-600"
-            >
-              Register
+              {loading ? 'Signing in...' : 'Sign in'}
             </button>
           </div>
         </form>
