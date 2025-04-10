@@ -35,10 +35,11 @@ function App() {
             path="/admin"
             element={
               <AdminRoute>
-                <AdminDashboard />
+                <Admin />
               </AdminRoute>
             }
           />
+          <Route path="/admin-dashboard" element={<AdminDashboard />} />
           <Route path="/" element={<Login />} />
         </Routes>
       </div>

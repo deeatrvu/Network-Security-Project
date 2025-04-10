@@ -18,13 +18,8 @@ app.use(cors());
 app.use(express.json());
 
 // Routes
-const authRoutes = require('./routes/auth');
-const votingRoutes = require('./routes/voting');
-const userRoutes = require('./routes/users');
-
-app.use('/api/auth', authRoutes);
-app.use('/api/votes', votingRoutes);
-app.use('/api/users', userRoutes);
+app.use('/api/auth', require('./routes/auth'));
+app.use('/api/votes', require('./routes/voting'));
 
 const PORT = process.env.PORT || 5000;
 
