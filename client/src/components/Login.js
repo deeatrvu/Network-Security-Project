@@ -36,27 +36,23 @@ const Login = () => {
       const data = await response.json();
 
       if (response.ok) {
-        // Get the stored user data from registration
+        // Get the stored private key from registration if available
         const storedUser = JSON.parse(localStorage.getItem('user'));
         
-        // Validate stored keys
-        if (!storedUser || !storedUser.publicKey || !storedUser.privateKey) {
-          setError('Missing encryption keys. Please register again.');
-          setLoading(false);
-          return;
-        }
+        // If server sent a new private key, use it, otherwise try to use stored one
+        const privateKey = data.privateKey || storedUser?.privateKey;
 
-        // Merge the login response with stored keys
+        // Prepare user data with keys
         const userData = {
           ...data,
-          publicKey: storedUser.publicKey,
-          privateKey: storedUser.privateKey
+          privateKey
         };
 
+        // Store the complete user data
         localStorage.setItem('user', JSON.stringify(userData));
 
         // Navigate based on user role
-        if (userData.role === 'admin') {
+        if (data.role === 'admin') {
           navigate('/admin');
         } else {
           navigate('/vote');
@@ -75,6 +71,9 @@ const Login = () => {
     <div className="min-h-screen flex items-center justify-center bg-gray-50 py-12 px-4 sm:px-6 lg:px-8">
       <div className="max-w-md w-full space-y-8">
         <div>
+          <h1 className="text-center text-4xl font-extrabold text-gray-900 mb-8">
+            A Secure and Encrypted Web-Based Voting System
+          </h1>
           <h2 className="mt-6 text-center text-3xl font-extrabold text-gray-900">
             Sign in to your account
           </h2>
@@ -119,10 +118,18 @@ const Login = () => {
           <div>
             <button
               type="submit"
-              className="group relative w-full flex justify-center py-2 px-4 border border-transparent text-sm font-medium rounded-md text-white bg-indigo-600 hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500 disabled:opacity-50"
+              className="group relative w-full flex justify-center py-2 px-4 border border-transparent text-sm font-medium rounded-md text-white bg-indigo-600 hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500 disabled:opacity-50 mb-4"
               disabled={loading}
             >
               {loading ? 'Signing in...' : 'Sign in'}
+            </button>
+            
+            <button
+              type="button"
+              onClick={() => navigate('/register')}
+              className="group relative w-full flex justify-center py-2 px-4 border border-transparent text-sm font-medium rounded-md text-white bg-green-600 hover:bg-green-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-green-500"
+            >
+              Register New Account
             </button>
           </div>
         </form>

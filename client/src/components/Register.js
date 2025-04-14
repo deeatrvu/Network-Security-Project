@@ -10,7 +10,7 @@ const Register = () => {
     confirmPassword: '',
     adminCode: ''
   });
-  const [error, setError] = useState('');
+  const [error, setError] = useState(''); 
   const navigate = useNavigate();
 
   const handleChange = (e) => {

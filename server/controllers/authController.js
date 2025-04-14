@@ -79,13 +79,31 @@ const loginUser = async (req, res) => {
     const user = await User.findOne({ where: { email } });
 
     if (user && (await user.matchPassword(password))) {
-      res.json({
-        id: user.id,
-        username: user.username,
-        email: user.email,
-        role: user.role,
-        token: generateToken(user.id)
-      });
+      // Generate new keys if publicKey is missing
+      if (!user.publicKey) {
+        const { publicKey, privateKey } = generateKeyPair();
+        user.publicKey = publicKey;
+        await user.save();
+        
+        res.json({
+          id: user.id,
+          username: user.username,
+          email: user.email,
+          role: user.role,
+          publicKey: publicKey,
+          privateKey: privateKey,  // Send private key only when newly generated
+          token: generateToken(user.id)
+        });
+      } else {
+        res.json({
+          id: user.id,
+          username: user.username,
+          email: user.email,
+          role: user.role,
+          publicKey: user.publicKey,
+          token: generateToken(user.id)
+        });
+      }
     } else {
       res.status(401).json({ message: 'Invalid email or password' });
     }

@@ -38,7 +38,7 @@ const User = sequelize.define('User', {
   },
   publicKey: {
     type: DataTypes.STRING,
-    allowNull: false
+    allowNull: true
   }
 }, {
   hooks: {

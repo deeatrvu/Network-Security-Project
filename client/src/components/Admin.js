@@ -9,6 +9,11 @@ const Admin = () => {
   const [decryptedVote, setDecryptedVote] = useState('');
   const navigate = useNavigate();
 
+  const handleLogout = () => {
+    localStorage.removeItem('user');
+    navigate('/login');
+  };
+
   useEffect(() => {
     const user = JSON.parse(localStorage.getItem('user'));
     if (!user || user.role !== 'admin') {
@@ -68,13 +73,21 @@ const Admin = () => {
   return (
     <div className="min-h-screen bg-gray-50 py-12 px-4 sm:px-6 lg:px-8">
       <div className="max-w-7xl mx-auto">
-        <div className="text-center">
-          <h2 className="text-3xl font-extrabold text-gray-900">
-            Vote Administration
-          </h2>
-          <p className="mt-2 text-sm text-gray-600">
-            View and verify cast votes
-          </p>
+        <div className="flex justify-between items-center mb-8">
+          <div className="text-center flex-grow">
+            <h2 className="text-3xl font-extrabold text-gray-900">
+              Vote Administration
+            </h2>
+            <p className="mt-2 text-sm text-gray-600">
+              View and verify cast votes
+            </p>
+          </div>
+          <button
+            onClick={handleLogout}
+            className="px-4 py-2 bg-red-600 text-white font-medium rounded-lg hover:bg-red-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-red-500 transition-colors duration-200"
+          >
+            Logout
+          </button>
         </div>
 
         {error && (
@@ -82,6 +95,15 @@ const Admin = () => {
             <span className="block sm:inline">{error}</span>
           </div>
         )}
+
+        <div className="mt-8 flex justify-center">
+          <button
+            onClick={() => navigate('/admin-dashboard')}
+            className="px-6 py-3 bg-purple-600 text-white font-medium rounded-lg hover:bg-purple-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-purple-500 transition-colors duration-200"
+          >
+            View Dashboard Statistics
+          </button>
+        </div>
 
         <div className="mt-8">
           <div className="flex flex-col">
@@ -95,10 +117,13 @@ const Admin = () => {
                           Voter
                         </th>
                         <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                          Vote ID
+                        </th>
+                        <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                           Timestamp
                         </th>
-                        <th scope="col" className="relative px-6 py-3">
-                          <span className="sr-only">Actions</span>
+                        <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                          Actions
                         </th>
                       </tr>
                     </thead>
@@ -109,10 +134,11 @@ const Admin = () => {
                             <div className="text-sm text-gray-900">{vote.User.username}</div>
                             <div className="text-sm text-gray-500">{vote.User.email}</div>
                           </td>
-                          <td className="px-6 py-4 whitespace-nowrap">
-                            <div className="text-sm text-gray-900">
-                              {new Date(vote.createdAt).toLocaleString()}
-                            </div>
+                          <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                            {vote.id}
+                          </td>
+                          <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                            {new Date(vote.createdAt).toLocaleString()}
                           </td>
                           <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
                             <button

@@ -13,6 +13,11 @@ const AdminDashboard = () => {
   const [error, setError] = useState('');
   const navigate = useNavigate();
 
+  const handleLogout = () => {
+    localStorage.removeItem('user');
+    navigate('/login');
+  };
+
   useEffect(() => {
     const user = JSON.parse(localStorage.getItem('user'));
     if (!user || user.role !== 'admin') {
@@ -123,13 +128,29 @@ const AdminDashboard = () => {
   return (
     <div className="min-h-screen bg-gray-50 py-12 px-4 sm:px-6 lg:px-8">
       <div className="max-w-7xl mx-auto">
-        <div className="text-center">
-          <h2 className="text-3xl font-extrabold text-gray-900">
-            Admin Dashboard
-          </h2>
-          <p className="mt-2 text-sm text-gray-600">
-            View and verify cast votes
-          </p>
+        <div className="flex justify-between items-center mb-8">
+          <div className="text-center flex-grow">
+            <h2 className="text-3xl font-extrabold text-gray-900">
+              Admin Dashboard
+            </h2>
+            <p className="mt-2 text-sm text-gray-600">
+              View and verify cast votes
+            </p>
+          </div>
+          <div className="flex space-x-4">
+            <button
+              onClick={() => navigate('/admin')}
+              className="px-4 py-2 bg-purple-600 text-white font-medium rounded-lg hover:bg-purple-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-purple-500 transition-colors duration-200"
+            >
+              Back to Admin
+            </button>
+            <button
+              onClick={handleLogout}
+              className="px-4 py-2 bg-red-600 text-white font-medium rounded-lg hover:bg-red-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-red-500 transition-colors duration-200"
+            >
+              Logout
+            </button>
+          </div>
         </div>
 
         {error && (

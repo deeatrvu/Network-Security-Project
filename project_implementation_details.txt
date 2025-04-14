@@ -1,0 +1,252 @@
+Project-Specific Implementation Details
+====================================
+
+1. Frontend Implementation
+-------------------------
+
+A. Login and Registration Components
+Location: /client/src/components/Login.js, Register.js
+Technologies Used:
+- React for component structure
+- crypto-js for generating user keys
+- TailwindCSS for form styling
+Why: 
+- Handles user authentication flow
+- Generates unique encryption keys during registration
+- Stores keys securely in browser storage
+Example Implementation:
+```javascript
+// In Register.js
+const handleRegistration = async () => {
+  // Generate key pair for new user
+  const keyPair = CryptoJS.generateKeyPair();
+  // Store public key in database
+  // Store private key in secure browser storage
+}
+```
+
+B. Voting Interface
+Location: /client/src/components/VotingPage.js
+Technologies Used:
+- React for UI components
+- WebSocket for real-time updates
+- crypto-js for vote encryption
+Why:
+- Provides intuitive voting interface
+- Encrypts votes before submission
+- Shows real-time confirmation
+Example Implementation:
+```javascript
+// In VotingPage.js
+const submitVote = async (choice) => {
+  // Encrypt vote using user's public key
+  const encryptedVote = CryptoJS.encrypt(choice, publicKey);
+  // Send via WebSocket for real-time confirmation
+  ws.send(JSON.stringify({ vote: encryptedVote }));
+}
+```
+
+C. Admin Dashboard
+Location: /client/src/components/AdminDashboard.js
+Technologies Used:
+- React for UI components
+- WebSocket for live updates
+- TailwindCSS for responsive design
+Why:
+- Monitors voting progress in real-time
+- Manages user access and permissions
+- Displays voting statistics
+Example Implementation:
+```javascript
+// In AdminDashboard.js
+useEffect(() => {
+  // WebSocket connection for live vote updates
+  ws.onmessage = (event) => {
+    const data = JSON.parse(event.data);
+    updateVoteCount(data);
+  };
+}, []);
+```
+
+2. Backend Implementation
+-------------------------
+
+A. Authentication System
+Location: /server/controllers/auth.js
+Technologies Used:
+- bcryptjs for password hashing
+- jsonwebtoken for session management
+- Express.js for routing
+Why:
+- Secures user credentials
+- Manages user sessions
+- Controls access to protected routes
+Example Implementation:
+```javascript
+// In auth.js
+const login = async (req, res) => {
+  // Hash password comparison
+  const isValid = await bcrypt.compare(password, user.password);
+  if (isValid) {
+    // Generate JWT token with role
+    const token = jwt.sign({ id: user.id, role: user.role });
+    res.json({ token });
+  }
+}
+```
+
+B. Vote Processing System
+Location: /server/controllers/vote.js
+Technologies Used:
+- crypto-js for vote decryption
+- Sequelize for database operations
+- WebSocket for real-time updates
+Why:
+- Processes encrypted votes
+- Prevents double voting
+- Updates vote counts in real-time
+Example Implementation:
+```javascript
+// In vote.js
+const processVote = async (encryptedVote, userId) => {
+  // Check for existing votes
+  const hasVoted = await Vote.findOne({ where: { userId }});
+  if (!hasVoted) {
+    // Store encrypted vote
+    await Vote.create({ 
+      userId,
+      encryptedVote,
+      timestamp: new Date()
+    });
+    // Broadcast update via WebSocket
+  }
+}
+```
+
+3. Database Structure
+--------------------
+
+A. User Model
+Location: /server/models/User.js
+Technologies Used:
+- Sequelize ORM
+- UUID for IDs
+Why:
+- Stores user information securely
+- Manages user roles and permissions
+- Maintains encryption keys
+Example Schema:
+```javascript
+const User = sequelize.define('User', {
+  id: {
+    type: DataTypes.UUID,
+    defaultValue: DataTypes.UUIDV4,
+    primaryKey: true
+  },
+  publicKey: DataTypes.TEXT,
+  role: DataTypes.ENUM('voter', 'admin'),
+  // Other fields...
+});
+```
+
+B. Vote Model
+Location: /server/models/Vote.js
+Technologies Used:
+- Sequelize ORM
+- Foreign keys for relationships
+Why:
+- Stores encrypted votes
+- Links votes to users securely
+- Maintains vote integrity
+Example Schema:
+```javascript
+const Vote = sequelize.define('Vote', {
+  id: {
+    type: DataTypes.UUID,
+    defaultValue: DataTypes.UUIDV4
+  },
+  encryptedVote: DataTypes.TEXT,
+  timestamp: DataTypes.DATE
+});
+```
+
+4. Security Implementation
+-------------------------
+
+A. CORS Configuration
+Location: /server/config/cors.js
+Why:
+- Prevents unauthorized API access
+- Secures WebSocket connections
+- Controls allowed origins
+Example Implementation:
+```javascript
+const corsOptions = {
+  origin: process.env.FRONTEND_URL,
+  methods: ['GET', 'POST'],
+  credentials: true
+};
+```
+
+B. Environment Variables
+Location: .env and .env.example
+Why:
+- Protects sensitive credentials
+- Configures different environments
+- Manages API keys and secrets
+Example Structure:
+```
+DB_CONNECTION=postgresql
+JWT_SECRET=your-secret-key
+ADMIN_ACCESS_CODE=secure-admin-code
+```
+
+5. Real-time Features
+--------------------
+
+A. WebSocket Server
+Location: /server/websocket/server.js
+Technologies Used:
+- ws package
+- JWT for connection authentication
+Why:
+- Enables live vote counting
+- Provides immediate feedback
+- Updates admin dashboard
+Example Implementation:
+```javascript
+// In websocket/server.js
+wss.on('connection', (ws, req) => {
+  // Verify JWT token
+  const token = getTokenFromRequest(req);
+  if (verifyToken(token)) {
+    // Handle real-time updates
+    ws.on('message', handleVoteMessage);
+  }
+});
+```
+
+6. Error Handling
+----------------
+
+A. Custom Error Handler
+Location: /server/middleware/errorHandler.js
+Why:
+- Provides consistent error responses
+- Handles different error types
+- Improves debugging
+Example Implementation:
+```javascript
+// In errorHandler.js
+const errorHandler = (err, req, res, next) => {
+  if (err instanceof ValidationError) {
+    return res.status(400).json({
+      error: 'Validation Error',
+      details: err.details
+    });
+  }
+  // Handle other error types...
+};
+```
+
+This implementation guide shows exactly how each technology is used in our voting system, with specific examples from our codebase. Each component works together to create a secure, efficient, and user-friendly voting platform. 
